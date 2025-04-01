@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoSignals - Segnali di Trading e Analisi Tecnica</title>
+    <meta name="description" content="Segnali di trading criptovalute con analisi tecnica avanzata: pattern armonici, Fibonacci, Fair Value Gap e Supply/Demand.">
+    
+    <!-- Precarica le librerie essenziali -->
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" as="style">
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" as="script">
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    
+    <!-- Plugin annotazioni per Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-color: #111;
+            --card-bg: #222;
+            --text-color: #00ff00;
+            --accent-color: #6CEB86;
+            --border-color: #444;
+            --shadow-color: rgba(0, 255, 0, 0.1);
+        }
+        
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            padding-bottom: 80px;
+        }
+        
+        header {
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            padding: 15px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+        
+        .app-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0;
+        }
+        
+        .logo {
+            height: 30px;
+            margin-right: 10px;
+        }
+        
+        .crypto-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 5px 15px var(--shadow-color);
+            margin-bottom: 15px;
+        }
+        
+        .crypto-chart-card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px var(--shadow-color);
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .crypto-chart-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px var(--shadow-color);
+        }
+        
+        .crypto-chart-card.has-advanced-data {
+            border: 1px solid rgba(0, 255, 255, 0.3);
+        }
+        
+        .crypto-chart-card.bg-success {
+            border-left: 4px solid #28a745;
+        }
+        
+        .crypto-chart-card.bg-danger {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .crypto-chart-card.bg-warning {
+            border-left: 4px solid #ffc107;
+        }
+        
+        .signal-badge {
+            font-size: 0.8rem;
+            padding: 3px 8px;
+            border-radius: 5px;
+        }
+        
+        .confidence-meter {
+            width: 50%;
+        }
+        
+        .advanced-indicators {
+            font-size: 0.75rem;
+            opacity: 0.8;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin: 15px 0;
+        }
+        
+        canvas.crypto-full-chart {
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+        }
+        
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+        }
+        
+        .bottom-nav .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #777;
+            text-decoration: none;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+        }
+        
+        .bottom-nav .nav-item.active {
+            color: var(--accent-color);
+            background-color: rgba(0, 255, 0, 0.1);
+        }
+        
+        .bottom-nav .nav-item i {
+            font-size: 1.4rem;
+            margin-bottom: 5px;
+        }
+        
+        .bottom-nav .nav-item span {
+            font-size: 0.8rem;
+        }
+        
+        #initial-loader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: var(--bg-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 5px solid rgba(0, 255, 0, 0.1);
+            border-left-color: var(--accent-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .text-success { color: #00c853 !important; }
+        .text-danger { color: #ff5252 !important; }
+        .text-warning { color: #ffd600 !important; }
+        .text-info { color: #00b8d4 !important; }
+        
+        .bg-success { background-color: #00c853 !important; }
+        .bg-danger { background-color: #ff5252 !important; }
+        .bg-warning { background-color: #ffd600 !important; }
+        .bg-info { background-color: #00b8d4 !important; }
+        
+        .btn-outline-success {
+            color: #00c853;
+            border-color: #00c853;
+        }
+        
+        .btn-outline-success:hover {
+            background-color: #00c853;
+            color: #000;
+        }
+        
+        @media (max-width: 576px) {
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            
+            .crypto-card, .crypto-chart-card {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Initial Loader -->
+    <div id="initial-loader">
+        <div class="d-flex flex-column align-items-center">
+            <div class="spinner mb-3"></div>
+            <h4 class="mt-3">CryptoSignals</h4>
+            <p class="text-muted small">Caricamento segnali...</p>
+        </div>
+    </div>
+
+    <header>
+        <div class="container">
+            <h2 class="app-title">
+                <img src="https://img.icons8.com/nolan/64/ethereum.png" alt="Logo" class="logo">
+                CryptoSignals
+            </h2>
+        </div>
+    </header>
+    
+    <div class="container mt-4">
+        <section id="marketOverviewSection">
+            <h4 class="mb-3">Panoramica Mercato</h4>
+            <div class="row" id="topCryptosContainer">
+                <!-- Top cryptos will be inserted here -->
+                <div class="col-12 mb-2">
+                    <div class="crypto-card p-3 d-flex justify-content-between align-items-center">
+                        <div class="spinner-border spinner-border-sm text-success crypto-loading-spinner" role="status">
+                            <span class="visually-hidden">Caricamento...</span>
+                        </div>
+                        <span class="text-muted">Caricamento criptovalute...</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="signalsSection" class="mt-4">
+            <h4 class="mb-3">Segnali di Trading</h4>
+            <div id="cryptoSignalsContainer">
+                <!-- Signals will be inserted here -->
+                <div class="crypto-card p-3 mb-2 d-flex justify-content-center">
+                    <div class="spinner-border spinner-border-sm text-success me-2 crypto-loading-spinner" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <span>Caricamento segnali di trading...</span>
+                </div>
+            </div>
+        </section>
+        
+        <section id="portfolioSection" class="mt-4 d-none">
+            <!-- Charts will be inserted here -->
+            <div class="crypto-card p-3 mb-3">
+                <div class="d-flex justify-content-center">
+                    <div class="spinner-border spinner-border-sm text-success me-2 crypto-loading-spinner" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                    <span>Caricamento analisi tecnica...</span>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" data-section="marketOverview">
+            <i class="fas fa-chart-line">📈</i>
+            <span>Mercato</span>
+        </div>
+        <div class="nav-item" data-section="signals">
+            <i class="fas fa-signal">⚡</i>
+            <span>Segnali</span>
+        </div>
+        <div class="nav-item" data-section="portfolio">
+            <i class="fas fa-chart-bar">📊</i>
+            <span>Analisi</span>
+        </div>
+    </nav>
+    
+    <!-- Crypto Chart Modal -->
+    <div class="modal fade" id="cryptoChartModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bg-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cryptoChartTitle">Crypto Chart</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <canvas id="cryptoChart" height="400"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Font Awesome Icons -->
+    <script src="https://kit.fontawesome.com/your-fontawesome-kit.js" crossorigin="anonymous"></script>
+    
+    <!-- Applicazione fallback per garantire il funzionamento anche in caso di errori API -->
+    <script src="crypto-fallback.js" type="module"></script>
+    
+    <!-- Applicazione principale -->
+    <script src="crypto-app.js" type="module"></script>
+    
+    <script>
+        // Flag per tracciare i tentativi di ricaricamento
+        let ricaricamentoIndex = false;
+        
+        // Nascondi il loader iniziale quando l'app è caricata
+        document.addEventListener('DOMContentLoaded', function() {
+            // Controlla che Chart.js sia disponibile
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js non è disponibile. Tentativo di ricaricamento...');
+                const script = document.createElement('script');
+                script.src = "https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js";
+                script.onload = function() {
+                    console.log('Chart.js caricato dinamicamente');
+                    const annotationScript = document.createElement('script');
+                    annotationScript.src = "https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.1.0/dist/chartjs-plugin-annotation.min.js";
+                    annotationScript.onload = function() {
+                        console.log('Plugin di annotazione caricato dinamicamente');
+                        if (window.Chart && window.ChartAnnotation) {
+                            Chart.register(window.ChartAnnotation);
+                            // Prova a inizializzare l'app
+                            if (window.initializeApp) {
+                                window.initializeApp();
+                            }
+                        }
+                    };
+                    document.head.appendChild(annotationScript);
+                };
+                document.head.appendChild(script);
+            }
+            
+            setTimeout(function() {
+                const loader = document.getElementById('initial-loader');
+                if (loader) {
+                    loader.style.opacity = '0';
+                    loader.style.transition = 'opacity 0.5s ease';
+                    setTimeout(function() {
+                        loader.style.display = 'none';
+                    }, 500);
+                }
+            }, 1000);
+            
+            // Verifica dopo 8 secondi che i segnali siano stati caricati
+            setTimeout(function() {
+                const signalsContainer = document.getElementById('cryptoSignalsContainer');
+                if (signalsContainer) {
+                    const loadingSpinners = signalsContainer.querySelectorAll('.crypto-loading-spinner');
+                    const signalCards = signalsContainer.querySelectorAll('.crypto-card');
+                    
+                    // Se ci sono ancora spinner di caricamento e solo una card (quella di caricamento)
+                    if (loadingSpinners.length > 0 && signalCards.length <= 1) {
+                        console.warn('I segnali non sono stati caricati correttamente dopo 8 secondi');
+                        
+                        // Usa il sistema di fallback se disponibile
+                        if (window.cryptoFallback && window.cryptoFallback.mostraErroreSegnali) {
+                            window.cryptoFallback.mostraErroreSegnali();
+                        } else {
+                            // Fallback manuale se il modulo non è disponibile
+                            signalsContainer.innerHTML = `
+                                <div class="crypto-card p-3 mb-3">
+                                    <h5 class="text-danger">Errore nel caricamento dei segnali</h5>
+                                    <p>Non è stato possibile recuperare i segnali di trading.</p>
+                                    <button class="btn btn-sm btn-outline-success mt-2" onclick="location.reload()">
+                                        Ricarica pagina
+                                    </button>
+                                </div>
+                            `;
+                        }
+                    }
+                }
+            }, 8000);
+        });
+    </script>
+</body>
+</html>
